@@ -6,13 +6,16 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import com.example.pet_moviefinder.App
+import com.example.pet_moviefinder.data.entity.Film
 import com.example.pet_moviefinder.view_model.HomeFragmentModel
 import com.example.pet_moviefinder.databinding.FragmentHomeBinding
+import com.example.pet_moviefinder.view_model.FilmViewAdapter
 
 class HomeFragment : Fragment() {
 
     lateinit var binding: FragmentHomeBinding
     var viewModel: HomeFragmentModel = App.app.dagger.getHomeModel()
+    private var adapter = FilmViewAdapter() { film: Film -> viewModel.onFilmItemClick(film) }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -22,26 +25,28 @@ class HomeFragment : Fragment() {
         return binding.root
     }
 
-    override fun onResume() {
-        super.onResume()
-        viewModel.refreshFilmList()
-    }
-
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        viewModel.listData.observe(viewLifecycleOwner) {
+            adapter.list = it
+        }
+
         viewModel.searchInFocus.observe(viewLifecycleOwner) {
             if (it) binding.contentView.searchView.isIconified = false
-            else binding.contentView.searchView.clearFocus()
-
+            else {
+                binding.contentView.searchView.clearFocus()
+                adapter.list = viewModel.listData.value
+            }
         }
 
         viewModel.isRefreshing.observe(viewLifecycleOwner) {
             binding.contentView.swipeRefreshLayout.isRefreshing = it
+            if (it) viewModel.refreshData()
         }
 
         //настройка RecyclerView
-        binding.contentView.rv.adapter = viewModel.adapter
+        binding.contentView.rv.adapter = adapter
 
         //настройка кнопки МЕНЮ верхней навигационной панели
         binding.appBar.appNB.setNavigationOnClickListener { viewModel.onNavigationClickListener(it.id) }
@@ -50,7 +55,11 @@ class HomeFragment : Fragment() {
         binding.appBar.appNB.setOnMenuItemClickListener { viewModel.onNavigationClickListener(it.itemId) }
 
         //настройка нижнего окна навигации
-        binding.bottomBar.bottomNV.setOnItemSelectedListener { viewModel.onNavigationClickListener(it.itemId) }
+        binding.bottomBar.bottomNV.setOnItemSelectedListener {
+            viewModel.onNavigationClickListener(
+                it.itemId
+            )
+        }
 
         //настройка окна поиска
         //при нажатии открывается ввод
@@ -65,7 +74,7 @@ class HomeFragment : Fragment() {
         }
 
         //добавление слушателя на окно поиска
-        binding.contentView.searchView.setOnQueryTextListener(viewModel.onQueryTextListener)
+        binding.contentView.searchView.setOnQueryTextListener(viewModel.onQueryTextListener(adapter))
 
         //настройка свайпа для обновления
         binding.contentView.swipeRefreshLayout.setOnRefreshListener {

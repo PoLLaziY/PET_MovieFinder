@@ -1,6 +1,7 @@
 package com.example.pet_moviefinder.model
 
 import android.widget.Toast
+import androidx.lifecycle.LiveData
 import com.example.pet_moviefinder.App
 import com.example.pet_moviefinder.data.PreferencesProvider
 import com.example.pet_moviefinder.data.dao.FilmDao
@@ -19,7 +20,7 @@ import retrofit2.Response
 interface IFilmRepositoryController {
     fun updateData(onDataUpdate: ((repository: FilmRepository) -> Unit)? = null)
     fun refreshData(onDataRefresh: ((repository: FilmRepository) -> Unit)? = null)
-    fun getList(): List<Film>
+    fun getLiveData(): LiveData<List<Film>>
 }
 
 class FilmRepositoryController(
@@ -34,22 +35,18 @@ class FilmRepositoryController(
     override fun updateData(onDataUpdate: ((repository: FilmRepository) -> Unit)?) {
         sendRequestToFilmList(++activePage) {
             if (it != null) {
-                if (activePage == 1) filmRepository.clear()
-                filmRepository.add(it.body()?.results)
                 onDataUpdate?.invoke(filmRepository)
                 CoroutineScope(Dispatchers.IO).launch {
-                    if (activePage == 1) filmDao.clear()
                     val list = it.body()?.results
                     if (!list.isNullOrEmpty()) {
+                        if (activePage == 1) filmDao.clear()
                         filmDao.insert(it.body()!!.results)
                     }
                 }
             } else {
                 CoroutineScope(Dispatchers.IO).launch {
-                    filmRepository.clear()
                     val list = filmDao.getFilmList()
                     CoroutineScope(Dispatchers.Main).launch {
-                        filmRepository.add(list)
                         onDataUpdate?.invoke(filmRepository)
                         if (filmRepository.size() == 0) Toast.makeText(App.app, "Film Repository is empty", Toast.LENGTH_SHORT)
                             .show()
@@ -64,8 +61,8 @@ class FilmRepositoryController(
         updateData(onDataUpdate)
     }
 
-    override fun getList(): List<Film> {
-        return filmRepository.getList()
+    override fun getLiveData(): LiveData<List<Film>> {
+        return filmRepository.getLiveData()
     }
 
     private fun sendRequestToFilmList(

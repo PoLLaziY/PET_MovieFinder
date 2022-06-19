@@ -7,7 +7,10 @@ import com.example.pet_moviefinder.data.entity.Film
 import com.example.pet_moviefinder.model.INavigationController
 import com.example.pet_moviefinder.model.NavigationController
 
-class DetailsFragmentModel(val favoriteController: IFavoriteRepositoryController, val navigationController: INavigationController) : ViewModel() {
+class DetailsFragmentModel(
+    val favoriteController: IFavoriteRepositoryController,
+    val navigationController: INavigationController
+) : ViewModel() {
 
     var film: Film? = null
         set(value) {

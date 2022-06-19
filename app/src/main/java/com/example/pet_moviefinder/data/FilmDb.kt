@@ -14,6 +14,6 @@ abstract class FilmDb: RoomDatabase() {
 
     companion object {
         const val DB_NAME = "films_db"
-        const val DB_VERSION = 3
+        const val DB_VERSION = 5
     }
 }

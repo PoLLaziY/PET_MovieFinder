@@ -7,12 +7,15 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import com.example.pet_moviefinder.App
 import com.example.pet_moviefinder.databinding.FragmentFavoriteBinding
+import com.example.pet_moviefinder.view_model.FilmViewAdapter
 
 class FavoriteFragment : Fragment() {
 
     lateinit var binding: FragmentFavoriteBinding
-
     val viewModel = App.app.dagger.getFavoriteFragmentModel()
+    val adapter: FilmViewAdapter = FilmViewAdapter {
+        viewModel.onFilmItemClick(it)
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -27,19 +30,28 @@ class FavoriteFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        viewModel.listData.observe(viewLifecycleOwner) {
+            adapter.list = it
+        }
+
         viewModel.searchInFocus.observe(viewLifecycleOwner) {
             if (it) binding.contentView.searchView.isIconified = false
             else {
                 binding.contentView.searchView.clearFocus()
-                viewModel.refreshFilmList()
+                adapter.list = viewModel.listData.value
             }
         }
 
-        //настройка RecyclerView
-        binding.contentView.rv.adapter = viewModel.adapter
+        viewModel.isRefreshing.observe(viewLifecycleOwner) {
+            binding.contentView.swipeRefreshLayout.isRefreshing = it
+            if (it) viewModel.refreshData()
+        }
+
+        binding.contentView.rv.adapter = adapter
 
         //настройка нижнего окна навигации
         binding.bottomBar.bottomNV.setOnItemSelectedListener { viewModel.onNavigationClickListener(it.itemId) }
+
 
         //настройка окна поиска
         //при нажатии открывается ввод
@@ -54,17 +66,11 @@ class FavoriteFragment : Fragment() {
         }
 
         //добавление слушателя на окно поиска
-        binding.contentView.searchView.setOnQueryTextListener(viewModel.onQueryTextListener)
+        binding.contentView.searchView.setOnQueryTextListener(viewModel.onQueryTextListener(adapter))
 
+        //настройка свайпа для обновления
         binding.contentView.swipeRefreshLayout.setOnRefreshListener {
-            binding.contentView.swipeRefreshLayout.isRefreshing = true
-            viewModel.refreshFilmList()
-            binding.contentView.swipeRefreshLayout.isRefreshing = false
+            viewModel.isRefreshing.value = true
         }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        viewModel.refreshFilmList()
     }
 }

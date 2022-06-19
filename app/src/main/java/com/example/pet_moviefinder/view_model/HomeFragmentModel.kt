@@ -15,34 +15,18 @@ class HomeFragmentModel(
     private val repositoryController: IFilmRepositoryController
 ) : ViewModel() {
 
-    var searchInFocus = MutableLiveData(false).apply {
-        this.observeForever {
-            if (it == false && adapter != null) {
-                adapter.list = repositoryController.getList()
-            }
-        }
-    }
-    var isRefreshing = MutableLiveData(false).apply {
-        this.observeForever {
-            if (it) {
-                repositoryController.refreshData {
-                    if (!(searchInFocus.value!!)) adapter.list = it.getList()
-                    CoroutineScope(Dispatchers.Main).launch {
-                        value = false
-                    }
-                }
-            }
-        }
-    }
+    var listData = repositoryController.getLiveData()
 
-    var onQueryTextListener = object : SearchView.OnQueryTextListener {
-        override fun onQueryTextSubmit(query: String?): Boolean {
-            return true
-        }
+    var searchInFocus = MutableLiveData(false)
+
+    var isRefreshing = MutableLiveData(false)
+
+    fun onQueryTextListener(adapter: FilmViewAdapter) = object : SearchView.OnQueryTextListener {
+        override fun onQueryTextSubmit(query: String?) = true
 
         override fun onQueryTextChange(newText: String?): Boolean {
             if (!newText.isNullOrBlank()) {
-                adapter.list = repositoryController.getList().filter { film ->
+                adapter.list = repositoryController.getLiveData().value?.filter { film ->
                     film.title?.contains(newText, true)?: false
                 }
             }
@@ -55,18 +39,13 @@ class HomeFragmentModel(
         true
     }
 
-    val filmItemClickListener = { film: Film -> navigation.onFilmItemClick(film) }
-
-    var adapter = FilmViewAdapter(filmItemClickListener).apply {
-        this.list = repositoryController.getList()
-        this.doOnListFinished = {
-            repositoryController.updateData {
-                this.list = it.getList()
-            }
-        }
+    fun onFilmItemClick(film: Film) {
+        navigation.onFilmItemClick(film)
     }
 
-    fun refreshFilmList() {
-        adapter.list = repositoryController.getList()
+    fun refreshData() {
+        repositoryController.refreshData {
+            isRefreshing.postValue(false)
+        }
     }
 }

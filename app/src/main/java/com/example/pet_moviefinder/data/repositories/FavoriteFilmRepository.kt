@@ -1,32 +1,18 @@
 package com.example.pet_moviefinder.data.repositories
 
+import android.widget.Toast
+import androidx.lifecycle.LiveData
+import com.example.pet_moviefinder.App
 import com.example.pet_moviefinder.data.entity.Film
 
-class FavoriteFilmRepository {
-    private var _list = mutableListOf<Film>()
+class FavoriteFilmRepository (liveData: LiveData<List<Film>>) {
+    private val liveList: LiveData<List<Film>> = liveData
 
-    fun isFavorite(film: Film): Boolean {
-        _list.forEach {
-            if (film.id == it.id) return true
-        }
-        return false
-    }
-
-    fun getFavoriteList(): List<Film> {
-        return _list
-    }
-
-    fun addFavorite(film: Film): Boolean {
-        return _list.add(film)
-    }
-    fun removeFavorite(film: Film): Boolean {
-        return _list.remove(film)
-    }
-    fun setFavoriteList(list: List<Film>) {
-        _list = list.toMutableList()
+    fun getLiveData(): LiveData<List<Film>> {
+        return liveList
     }
 
     fun size(): Int {
-        return _list.size
+        return liveList.value?.size?: 0
     }
 }
