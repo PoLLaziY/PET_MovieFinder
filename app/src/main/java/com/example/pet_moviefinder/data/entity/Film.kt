@@ -4,6 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.google.gson.annotations.SerializedName
+import java.io.Serializable
 
 @Entity(tableName = Film.Fields.TABLE_NAME)
 open class Film (
@@ -17,7 +18,7 @@ open class Film (
     @SerializedName(Fields.TITLE)open val title : String?,
     @ColumnInfo(name = Fields.RATING)
     @SerializedName(Fields.RATING)open val rating : Double?
-) {
+): Serializable {
     object Fields {
         const val TABLE_NAME = "films_table"
         const val ICON_URL = "poster_path"

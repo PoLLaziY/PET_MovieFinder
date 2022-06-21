@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 
 interface IFavoriteRepositoryController {
     fun refreshData(doOnLoad: (()->Unit)? = null)
-    fun isFavorite(film: Film): Boolean
+    fun isFavorite(film: Film?): Boolean
     fun addFavorite(film: Film)
     fun removeFavorite(film: Film)
     fun getLiveData(): LiveData<List<Film>>
@@ -33,11 +33,11 @@ class FavoriteRepositoryController(
         }
     }
 
-    override fun isFavorite(film: Film): Boolean {
-        favoriteFilmRepository.getLiveData().value?.forEach {
-            if (film.id == it.id) return true
-        }
-        return false
+    override fun isFavorite(film: Film?): Boolean {
+        if (film == null) return false
+        return favoriteFilmRepository.getLiveData().value?.any {
+            it.id == film.id
+        } ?: false
     }
 
     override fun addFavorite(film: Film) {

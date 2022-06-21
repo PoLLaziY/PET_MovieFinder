@@ -2,14 +2,18 @@ package com.example.pet_moviefinder.view_model
 
 import androidx.appcompat.widget.SearchView
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.example.pet_moviefinder.data.entity.Film
 import com.example.pet_moviefinder.model.IFavoriteRepositoryController
 import com.example.pet_moviefinder.model.INavigationController
 
 class FavoriteFragmentModel(
     val favoriteController: IFavoriteRepositoryController,
-    val navigation: INavigationController
+    val navigation: INavigationController,
+    private val handle: SavedStateHandle
 ): ViewModel() {
 
     var listData = favoriteController.getLiveData()
@@ -17,6 +21,18 @@ class FavoriteFragmentModel(
     var searchInFocus = MutableLiveData(false)
 
     var isRefreshing = MutableLiveData(false)
+
+    var scrollState: Int = handle.get<Int>(SavedStateHandleKeys.FAVORITE_SCROLL_STATE)?:0
+        set(value) {
+            field = value
+            handle.set(SavedStateHandleKeys.FAVORITE_SCROLL_STATE, field)
+        }
+
+    val rvScrollListener: RecyclerView.OnScrollListener = object : RecyclerView.OnScrollListener() {
+        override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+            scrollState = (recyclerView.layoutManager as LinearLayoutManager).findFirstCompletelyVisibleItemPosition()
+        }
+    }
 
     fun onQueryTextListener(adapter: FilmViewAdapter) = object : SearchView.OnQueryTextListener {
         override fun onQueryTextSubmit(query: String?) = true

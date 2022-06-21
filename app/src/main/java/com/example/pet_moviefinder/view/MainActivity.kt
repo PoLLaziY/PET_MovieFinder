@@ -2,6 +2,7 @@ package com.example.pet_moviefinder.view
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import androidx.lifecycle.*
 import com.example.pet_moviefinder.App
 import com.example.pet_moviefinder.databinding.ActivityMainBinding
 

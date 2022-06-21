@@ -4,7 +4,10 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.ViewModelProvider
 import com.example.pet_moviefinder.App
 import com.example.pet_moviefinder.data.entity.Film
 import com.example.pet_moviefinder.view_model.HomeFragmentModel
@@ -14,7 +17,11 @@ import com.example.pet_moviefinder.view_model.FilmViewAdapter
 class HomeFragment : Fragment() {
 
     lateinit var binding: FragmentHomeBinding
-    var viewModel: HomeFragmentModel = App.app.dagger.getHomeModel()
+    val viewModel: HomeFragmentModel by activityViewModels {
+        App.app.dagger.provideHomeModelFactory(
+            this
+        )
+    }
     private var adapter = FilmViewAdapter() { film: Film -> viewModel.onFilmItemClick(film) }
 
     override fun onCreateView(
@@ -28,9 +35,16 @@ class HomeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        //настройка RecyclerView
+        binding.contentView.rv.adapter = adapter
+
         viewModel.listData.observe(viewLifecycleOwner) {
             adapter.list = it
         }
+
+        binding.contentView.rv.addOnScrollListener(viewModel.rvScrollListener)
+
+        binding.contentView.rv.scrollToPosition(if (viewModel.scrollState < adapter.list?.size ?: 0) viewModel.scrollState else 0)
 
         viewModel.searchInFocus.observe(viewLifecycleOwner) {
             if (it) binding.contentView.searchView.isIconified = false
@@ -44,9 +58,6 @@ class HomeFragment : Fragment() {
             binding.contentView.swipeRefreshLayout.isRefreshing = it
             if (it) viewModel.refreshData()
         }
-
-        //настройка RecyclerView
-        binding.contentView.rv.adapter = adapter
 
         //настройка кнопки МЕНЮ верхней навигационной панели
         binding.appBar.appNB.setNavigationOnClickListener { viewModel.onNavigationClickListener(it.id) }

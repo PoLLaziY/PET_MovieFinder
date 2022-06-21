@@ -5,14 +5,20 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import com.example.pet_moviefinder.App
 import com.example.pet_moviefinder.databinding.FragmentFavoriteBinding
+import com.example.pet_moviefinder.view_model.FavoriteFragmentModel
 import com.example.pet_moviefinder.view_model.FilmViewAdapter
 
 class FavoriteFragment : Fragment() {
 
     lateinit var binding: FragmentFavoriteBinding
-    val viewModel = App.app.dagger.getFavoriteFragmentModel()
+    val viewModel: FavoriteFragmentModel by activityViewModels {
+        App.app.dagger.provideFavoriteModelFactory(
+            this
+        )
+    }
     val adapter: FilmViewAdapter = FilmViewAdapter {
         viewModel.onFilmItemClick(it)
     }
@@ -33,6 +39,10 @@ class FavoriteFragment : Fragment() {
         viewModel.listData.observe(viewLifecycleOwner) {
             adapter.list = it
         }
+
+        binding.contentView.rv.addOnScrollListener(viewModel.rvScrollListener)
+
+        binding.contentView.rv.scrollToPosition(if (viewModel.scrollState < adapter.list?.size ?: 0) viewModel.scrollState else 0)
 
         viewModel.searchInFocus.observe(viewLifecycleOwner) {
             if (it) binding.contentView.searchView.isIconified = false
