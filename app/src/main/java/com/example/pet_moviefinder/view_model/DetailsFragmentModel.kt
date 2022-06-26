@@ -1,12 +1,20 @@
 package com.example.pet_moviefinder.view_model
 
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.Observer
-import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
+import android.Manifest
+import android.content.ContentValues
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.os.Build
+import android.provider.MediaStore
+import android.widget.Toast
+import androidx.lifecycle.*
+import com.example.moviefinder.data.remote_api.TheMovieDbConst
+import com.example.pet_moviefinder.App
 import com.example.pet_moviefinder.model.IFavoriteRepositoryController
 import com.example.pet_moviefinder.data.entity.Film
 import com.example.pet_moviefinder.model.INavigationController
+import kotlinx.coroutines.launch
+import java.net.URL
 
 class DetailsFragmentModel(
     val favoriteController: IFavoriteRepositoryController,
@@ -59,5 +67,18 @@ class DetailsFragmentModel(
 
     fun onShareButtonClick() {
         if (film.value != null) navigationController.onShareButtonClick(film.value!!)
+    }
+
+    fun onDownloadButtonClick() {
+        if (film.value == null) return
+
+        if (navigationController.checkPermissions(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+            viewModelScope.launch {
+                navigationController.loadToGalleryImage(film.value!!)
+                navigationController.makeSnackBar()
+            }
+        } else {
+            navigationController.requestPermissionAndDo(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        }
     }
 }

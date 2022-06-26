@@ -34,7 +34,7 @@ class DetailsFragment(val film: Film) : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        viewModel.film.value = film
+        viewModel.film.postValue(film)
 
         viewModel.film.observe(viewLifecycleOwner) {
             if (it != null) {
@@ -63,6 +63,10 @@ class DetailsFragment(val film: Film) : Fragment() {
 
         binding.shareFab.setOnClickListener {
             viewModel.onShareButtonClick()
+        }
+
+        binding.download.setOnClickListener {
+            viewModel.onDownloadButtonClick()
         }
     }
 }
