@@ -1,11 +1,11 @@
 package com.example.pet_moviefinder.view_model
 
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.example.pet_moviefinder.model.IFilmRepositoryController
 import com.example.pet_moviefinder.model.INavigationController
 import com.example.pet_moviefinder.R
 import com.example.pet_moviefinder.data.PreferencesProvider
+import kotlinx.coroutines.flow.MutableStateFlow
 
 class SettingsFragmentModel(
     val preferencesProvider: PreferencesProvider,
@@ -18,7 +18,7 @@ class SettingsFragmentModel(
         true
     }
 
-    val categoryType = MutableLiveData(preferencesProvider.getCategoryType())
+    val categoryType = MutableStateFlow(preferencesProvider.getCategoryType())
 
     fun onCategoryTypeChanged(buttonId: Int) {
         var type = PreferencesProvider.CategoryTypes.POPULAR

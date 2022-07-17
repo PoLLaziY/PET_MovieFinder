@@ -1,48 +1,48 @@
 package com.example.pet_moviefinder.view_model
 
 import androidx.appcompat.widget.SearchView
-import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.example.pet_moviefinder.model.IFilmRepositoryController
 import com.example.pet_moviefinder.model.INavigationController
 import com.example.pet_moviefinder.data.entity.Film
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class HomeFragmentModel(
     private val navigation: INavigationController,
-    private val repositoryController: IFilmRepositoryController
+    private val repositoryController: IFilmRepositoryController,
+    private val handle: SavedStateHandle
 ) : ViewModel() {
 
-    var searchInFocus = MutableLiveData(false).apply {
-        this.observeForever {
-            if (it == false && adapter != null) {
-                adapter.list = repositoryController.getList()
-            }
-        }
+    var filmList: StateFlow<List<Film>> = repositoryController.getFilmListFlow()
+
+    var searchInFocus = MutableStateFlow(false)
+
+    var isRefreshing = MutableStateFlow(false)
+
+    var scrollState: Int = handle.get<Int>(SavedStateHandleKeys.HOME_SCROLL_STATE)?:0
+    set(value) {
+        field = value
+        handle.set(SavedStateHandleKeys.HOME_SCROLL_STATE, field)
     }
-    var isRefreshing = MutableLiveData(false).apply {
-        this.observeForever {
-            if (it) {
-                repositoryController.refreshData {
-                    if (!(searchInFocus.value!!)) adapter.list = it.getList()
-                    CoroutineScope(Dispatchers.Main).launch {
-                        value = false
-                    }
-                }
-            }
+
+    val rvScrollListener: RecyclerView.OnScrollListener = object : RecyclerView.OnScrollListener() {
+        override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+            scrollState = (recyclerView.layoutManager as LinearLayoutManager).findFirstCompletelyVisibleItemPosition()
         }
     }
 
-    var onQueryTextListener = object : SearchView.OnQueryTextListener {
-        override fun onQueryTextSubmit(query: String?): Boolean {
-            return true
-        }
+    fun onQueryTextListener(adapter: FilmViewAdapter) = object : SearchView.OnQueryTextListener {
+        override fun onQueryTextSubmit(query: String?) = true
 
         override fun onQueryTextChange(newText: String?): Boolean {
             if (!newText.isNullOrBlank()) {
-                adapter.list = repositoryController.getList().filter { film ->
+                adapter.list = repositoryController.getFilmListFlow().value.filter { film ->
                     film.title?.contains(newText, true)?: false
                 }
             }
@@ -55,18 +55,15 @@ class HomeFragmentModel(
         true
     }
 
-    val filmItemClickListener = { film: Film -> navigation.onFilmItemClick(film) }
-
-    var adapter = FilmViewAdapter(filmItemClickListener).apply {
-        this.list = repositoryController.getList()
-        this.doOnListFinished = {
-            repositoryController.updateData {
-                this.list = it.getList()
-            }
-        }
+    fun onFilmItemClick(film: Film) {
+        navigation.onFilmItemClick(film)
     }
 
-    fun refreshFilmList() {
-        adapter.list = repositoryController.getList()
+    fun refreshData() {
+        repositoryController.refreshData {
+            viewModelScope.launch {
+                isRefreshing.emit(false)
+            }
+        }
     }
 }

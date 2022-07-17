@@ -14,7 +14,7 @@ import kotlinx.coroutines.*
 class FilmViewAdapter(val filmItemClickListener: ((film: Film) -> Unit)?) :
     RecyclerView.Adapter<FilmViewAdapter.FilmViewHolder>() {
 
-    var list: List<Film> = emptyList()
+    var list: List<Film>? = null
         set(value) {
             field = value
             CoroutineScope(Dispatchers.Main).launch {
@@ -22,8 +22,6 @@ class FilmViewAdapter(val filmItemClickListener: ((film: Film) -> Unit)?) :
             }
 
         }
-
-    var doOnListFinished: () -> Unit = {}
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FilmViewHolder {
         return FilmViewHolder(
@@ -36,14 +34,13 @@ class FilmViewAdapter(val filmItemClickListener: ((film: Film) -> Unit)?) :
         when (holder) {
             is FilmViewHolder -> {
                 //привязка данных из базы к View
-                holder.film = list[position]
-                if (position == list.size - 6) doOnListFinished.invoke()
+                holder.film = list?.get(position)
             }
         }
     }
 
     override fun getItemCount(): Int {
-        return list.size
+        return list?.size?: 0
     }
 
 

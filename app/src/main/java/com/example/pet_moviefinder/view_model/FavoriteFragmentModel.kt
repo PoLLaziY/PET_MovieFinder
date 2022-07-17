@@ -1,48 +1,70 @@
 package com.example.pet_moviefinder.view_model
 
 import androidx.appcompat.widget.SearchView
-import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.example.pet_moviefinder.data.entity.Film
 import com.example.pet_moviefinder.model.IFavoriteRepositoryController
 import com.example.pet_moviefinder.model.INavigationController
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
 class FavoriteFragmentModel(
     val favoriteController: IFavoriteRepositoryController,
-    val navigation: INavigationController
+    val navigation: INavigationController,
+    private val handle: SavedStateHandle
 ): ViewModel() {
 
-    val onNavigationClickListener: (itemId: Int) -> Boolean = {
-        navigation.onNavigationClick(it)
-        true
+    var filmList: StateFlow<List<Film>> = favoriteController.getFilmList()
+
+    var searchInFocus = MutableStateFlow(false)
+
+    var isRefreshing = MutableStateFlow(false)
+
+
+    var scrollState: Int = handle.get<Int>(SavedStateHandleKeys.FAVORITE_SCROLL_STATE)?:0
+        set(value) {
+            field = value
+            handle.set(SavedStateHandleKeys.FAVORITE_SCROLL_STATE, field)
+        }
+
+    val rvScrollListener: RecyclerView.OnScrollListener = object : RecyclerView.OnScrollListener() {
+        override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+            scrollState = (recyclerView.layoutManager as LinearLayoutManager).findFirstCompletelyVisibleItemPosition()
+        }
     }
 
-    val onQueryTextListener = object : SearchView.OnQueryTextListener {
-        override fun onQueryTextSubmit(query: String?): Boolean {
-            return true
-        }
+    fun onQueryTextListener(adapter: FilmViewAdapter) = object : SearchView.OnQueryTextListener {
+        override fun onQueryTextSubmit(query: String?) = true
 
         override fun onQueryTextChange(newText: String?): Boolean {
             if (!newText.isNullOrBlank()) {
-                adapter.list = favoriteController.getList().filter { film ->
-                    film.title?.contains(newText, true)?: false
+                adapter.list = favoriteController.getFilmList().value.filter { film ->
+                    film.title?.contains(newText, true)?:false
                 }
             }
             return true
         }
     }
 
-    val searchInFocus = MutableLiveData(false)
-    val adapter: FilmViewAdapter = FilmViewAdapter {
-        navigation.onFilmItemClick(it)
+    val onNavigationClickListener: (itemId: Int) -> Boolean = {
+        navigation.onNavigationClick(it)
+        true
     }
 
-    init {
-        refreshFilmList()
+    fun onFilmItemClick(film: Film) {
+        navigation.onFilmItemClick(film)
     }
 
-    fun refreshFilmList() {
-        favoriteController.refreshData() {
-            adapter.list = favoriteController.getList().toList()
+    fun refreshData() {
+        favoriteController.refreshData {
+            viewModelScope.launch {
+                isRefreshing.emit(false)
+            }
         }
     }
 }

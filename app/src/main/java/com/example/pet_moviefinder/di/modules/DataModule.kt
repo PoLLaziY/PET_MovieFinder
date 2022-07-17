@@ -15,11 +15,11 @@ class DataModule {
 
     @Provides
     @Singleton
-    fun provideFilmRepository() = FilmRepository()
+    fun provideFilmRepository(filmDb: FilmDb) = FilmRepository(filmDb.filmDao().getFilmList())
 
     @Provides
     @Singleton
-    fun provideFavoriteFilmRepository() = FavoriteFilmRepository()
+    fun provideFavoriteFilmRepository(filmDb: FilmDb) = FavoriteFilmRepository(filmDb.favoriteFilmDao().getFavoriteList())
 
     @Provides
     @Singleton

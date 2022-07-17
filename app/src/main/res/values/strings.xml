@@ -34,4 +34,7 @@
     <string name="bottom_bar_favorite_icon_text">FAVORITE</string>
     <string name="bottom_bar_selections_icon_text">SELECTIONS</string>
     <string name="bottom_bar_later_icon_text">LATER</string>
+    <string name="upload">Загружено</string>
+    <string name="open">Открыть</string>
+    <string name="image_type_path">image/*</string>
 </resources>

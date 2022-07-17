@@ -11,6 +11,8 @@ import com.example.pet_moviefinder.data.remote_api.TheMovieDbKey
 import com.example.pet_moviefinder.data.repositories.FilmRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import retrofit2.Call
 import retrofit2.Callback
@@ -19,7 +21,7 @@ import retrofit2.Response
 interface IFilmRepositoryController {
     fun updateData(onDataUpdate: ((repository: FilmRepository) -> Unit)? = null)
     fun refreshData(onDataRefresh: ((repository: FilmRepository) -> Unit)? = null)
-    fun getList(): List<Film>
+    fun getFilmListFlow(): StateFlow<List<Film>>
 }
 
 class FilmRepositoryController(
@@ -34,22 +36,18 @@ class FilmRepositoryController(
     override fun updateData(onDataUpdate: ((repository: FilmRepository) -> Unit)?) {
         sendRequestToFilmList(++activePage) {
             if (it != null) {
-                if (activePage == 1) filmRepository.clear()
-                filmRepository.add(it.body()?.results)
                 onDataUpdate?.invoke(filmRepository)
                 CoroutineScope(Dispatchers.IO).launch {
-                    if (activePage == 1) filmDao.clear()
                     val list = it.body()?.results
                     if (!list.isNullOrEmpty()) {
+                        if (activePage == 1) filmDao.clear()
                         filmDao.insert(it.body()!!.results)
                     }
                 }
             } else {
                 CoroutineScope(Dispatchers.IO).launch {
-                    filmRepository.clear()
                     val list = filmDao.getFilmList()
                     CoroutineScope(Dispatchers.Main).launch {
-                        filmRepository.add(list)
                         onDataUpdate?.invoke(filmRepository)
                         if (filmRepository.size() == 0) Toast.makeText(App.app, "Film Repository is empty", Toast.LENGTH_SHORT)
                             .show()
@@ -64,8 +62,8 @@ class FilmRepositoryController(
         updateData(onDataUpdate)
     }
 
-    override fun getList(): List<Film> {
-        return filmRepository.getList()
+    override fun getFilmListFlow(): StateFlow<List<Film>> {
+        return filmRepository.getFilmList()
     }
 
     private fun sendRequestToFilmList(

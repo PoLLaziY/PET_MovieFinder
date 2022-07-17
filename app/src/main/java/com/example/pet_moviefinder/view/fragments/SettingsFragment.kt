@@ -5,9 +5,11 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.lifecycle.lifecycleScope
 import com.example.pet_moviefinder.App
 import com.example.pet_moviefinder.data.PreferencesProvider
 import com.example.pet_moviefinder.databinding.FragmentSettingsBinding
+import kotlinx.coroutines.launch
 
 class SettingsFragment : Fragment() {
 
@@ -21,8 +23,10 @@ class SettingsFragment : Fragment() {
             viewModel.onCategoryTypeChanged(i)
         }
 
-        viewModel.categoryType.observe(viewLifecycleOwner) {
-            checkTypeRadio(it)
+        lifecycleScope.launch {
+            viewModel.categoryType.collect {
+                checkTypeRadio(it)
+            }
         }
 
         //настройка нижнего окна навигации
@@ -30,7 +34,7 @@ class SettingsFragment : Fragment() {
 
     }
 
-    fun checkTypeRadio(type: String) {
+    private fun checkTypeRadio(type: String) {
         var button = binding.popular
         when (type) {
             PreferencesProvider.CategoryTypes.POPULAR.key -> button = binding.popular
