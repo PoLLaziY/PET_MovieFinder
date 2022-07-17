@@ -13,6 +13,7 @@ import com.example.pet_moviefinder.App
 import com.example.pet_moviefinder.model.IFavoriteRepositoryController
 import com.example.pet_moviefinder.data.entity.Film
 import com.example.pet_moviefinder.model.INavigationController
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import java.net.URL
 
@@ -22,33 +23,35 @@ class DetailsFragmentModel(
     val handle: SavedStateHandle
 ) : ViewModel() {
 
-    val film: MutableLiveData<Film?> = MutableLiveData<Film?>()
-    private val filmObserver = Observer<Film?> { it ->
-            _isFavoriteInRepository = favoriteController.isFavorite(it)
-            isFavorite.postValue(_isFavoriteInRepository)
-            if (it != null) handle.set(SavedStateHandleKeys.DETAILS_FILM_KEY, it)
-        }
+    val film: MutableStateFlow<Film?> = MutableStateFlow(null)
 
     private var _isFavoriteInRepository: Boolean = false
 
-    val isFavorite: MutableLiveData<Boolean> = MutableLiveData(false)
+    val isFavorite: MutableStateFlow<Boolean> = MutableStateFlow(false)
     private val isFavoriteObserver = Observer<Boolean> { it ->
         if (it == true && !_isFavoriteInRepository) addToFavorite(film.value)
         if (it != true && _isFavoriteInRepository) removeFromFavorite(film.value)
     }
 
     init {
-        film.observeForever (filmObserver)
+        viewModelScope.launch {
+            film.collect{
+                _isFavoriteInRepository = favoriteController.isFavorite(it)
+                isFavorite.emit(_isFavoriteInRepository)
+                if (it != null) handle.set(SavedStateHandleKeys.DETAILS_FILM_KEY, it)
+            }
+        }
 
-        film.postValue(handle.get(SavedStateHandleKeys.DETAILS_FILM_KEY))
+        viewModelScope.launch {
+            film.emit(handle.get(SavedStateHandleKeys.DETAILS_FILM_KEY))
+        }
 
-        isFavorite.observeForever (isFavoriteObserver)
-    }
-
-    override fun onCleared() {
-        film.removeObserver(filmObserver)
-        isFavorite.removeObserver(isFavoriteObserver)
-        super.onCleared()
+        viewModelScope.launch {
+            isFavorite.collect {
+                if (it && !_isFavoriteInRepository) addToFavorite(film.value)
+                if (!it && _isFavoriteInRepository) removeFromFavorite(film.value)
+            }
+        }
     }
 
     private fun addToFavorite(film: Film?) {

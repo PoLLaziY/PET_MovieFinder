@@ -1,7 +1,6 @@
 package com.example.pet_moviefinder.model
 
 import android.widget.Toast
-import androidx.lifecycle.LiveData
 import com.example.pet_moviefinder.App
 import com.example.pet_moviefinder.data.PreferencesProvider
 import com.example.pet_moviefinder.data.dao.FilmDao
@@ -12,6 +11,8 @@ import com.example.pet_moviefinder.data.remote_api.TheMovieDbKey
 import com.example.pet_moviefinder.data.repositories.FilmRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import retrofit2.Call
 import retrofit2.Callback
@@ -20,7 +21,7 @@ import retrofit2.Response
 interface IFilmRepositoryController {
     fun updateData(onDataUpdate: ((repository: FilmRepository) -> Unit)? = null)
     fun refreshData(onDataRefresh: ((repository: FilmRepository) -> Unit)? = null)
-    fun getLiveData(): LiveData<List<Film>>
+    fun getFilmListFlow(): StateFlow<List<Film>>
 }
 
 class FilmRepositoryController(
@@ -61,8 +62,8 @@ class FilmRepositoryController(
         updateData(onDataUpdate)
     }
 
-    override fun getLiveData(): LiveData<List<Film>> {
-        return filmRepository.getLiveData()
+    override fun getFilmListFlow(): StateFlow<List<Film>> {
+        return filmRepository.getFilmList()
     }
 
     private fun sendRequestToFilmList(

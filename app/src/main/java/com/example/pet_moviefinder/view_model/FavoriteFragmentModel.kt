@@ -1,14 +1,17 @@
 package com.example.pet_moviefinder.view_model
 
 import androidx.appcompat.widget.SearchView
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.pet_moviefinder.data.entity.Film
 import com.example.pet_moviefinder.model.IFavoriteRepositoryController
 import com.example.pet_moviefinder.model.INavigationController
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
 class FavoriteFragmentModel(
     val favoriteController: IFavoriteRepositoryController,
@@ -16,11 +19,12 @@ class FavoriteFragmentModel(
     private val handle: SavedStateHandle
 ): ViewModel() {
 
-    var listData = favoriteController.getLiveData()
+    var filmList: StateFlow<List<Film>> = favoriteController.getFilmList()
 
-    var searchInFocus = MutableLiveData(false)
+    var searchInFocus = MutableStateFlow(false)
 
-    var isRefreshing = MutableLiveData(false)
+    var isRefreshing = MutableStateFlow(false)
+
 
     var scrollState: Int = handle.get<Int>(SavedStateHandleKeys.FAVORITE_SCROLL_STATE)?:0
         set(value) {
@@ -39,8 +43,8 @@ class FavoriteFragmentModel(
 
         override fun onQueryTextChange(newText: String?): Boolean {
             if (!newText.isNullOrBlank()) {
-                adapter.list = favoriteController.getLiveData().value?.filter { film ->
-                    film.title?.contains(newText, true)?: false
+                adapter.list = favoriteController.getFilmList().value.filter { film ->
+                    film.title?.contains(newText, true)?:false
                 }
             }
             return true
@@ -58,7 +62,9 @@ class FavoriteFragmentModel(
 
     fun refreshData() {
         favoriteController.refreshData {
-            isRefreshing.postValue(false)
+            viewModelScope.launch {
+                isRefreshing.emit(false)
+            }
         }
     }
 }

@@ -4,15 +4,16 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import com.example.pet_moviefinder.App
 import com.example.pet_moviefinder.data.entity.Film
 import com.example.pet_moviefinder.view_model.HomeFragmentModel
 import com.example.pet_moviefinder.databinding.FragmentHomeBinding
 import com.example.pet_moviefinder.view_model.FilmViewAdapter
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class HomeFragment : Fragment() {
 
@@ -38,26 +39,34 @@ class HomeFragment : Fragment() {
         //настройка RecyclerView
         binding.contentView.rv.adapter = adapter
 
-        viewModel.listData.observe(viewLifecycleOwner) {
-            adapter.list = it
+        lifecycleScope.launch(Dispatchers.Main) {
+            viewModel.filmList.collect {
+                adapter.list = it
+            }
         }
+
+        lifecycleScope.launch {
+            viewModel.searchInFocus.collect {
+                if (it) binding.contentView.searchView.isIconified = false
+                else {
+                    binding.contentView.searchView.clearFocus()
+                    adapter.list = viewModel.filmList.value
+                }
+            }
+        }
+
+        lifecycleScope.launch {
+            viewModel.isRefreshing.collect {
+                binding.contentView.swipeRefreshLayout.isRefreshing = it
+                if (it) viewModel.refreshData()
+            }
+        }
+
 
         binding.contentView.rv.addOnScrollListener(viewModel.rvScrollListener)
 
         binding.contentView.rv.scrollToPosition(if (viewModel.scrollState < adapter.list?.size ?: 0) viewModel.scrollState else 0)
 
-        viewModel.searchInFocus.observe(viewLifecycleOwner) {
-            if (it) binding.contentView.searchView.isIconified = false
-            else {
-                binding.contentView.searchView.clearFocus()
-                adapter.list = viewModel.listData.value
-            }
-        }
-
-        viewModel.isRefreshing.observe(viewLifecycleOwner) {
-            binding.contentView.swipeRefreshLayout.isRefreshing = it
-            if (it) viewModel.refreshData()
-        }
 
         //настройка кнопки МЕНЮ верхней навигационной панели
         binding.appBar.appNB.setNavigationOnClickListener { viewModel.onNavigationClickListener(it.id) }

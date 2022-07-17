@@ -1,26 +1,19 @@
 package com.example.pet_moviefinder.data.dao
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.Transformations
 import androidx.room.*
 import com.example.pet_moviefinder.data.entity.FavoriteFilm
 import com.example.pet_moviefinder.data.entity.Film
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.transform
 
 @Dao
 interface FavoriteFilmDao {
     @Query("SELECT * FROM ${FavoriteFilm.Fields.TABLE_NAME}")
-    fun getFavoriteFilmList(): LiveData<List<FavoriteFilm>>
+    fun getFavoriteFilmList(): Flow<List<FavoriteFilm>>
 
-    fun getFavoriteList(): LiveData<List<Film>> {
-        return Transformations.map(getFavoriteFilmList()) {
-            return@map object : AbstractList<Film>() {
-                override val size: Int
-                    get() = it.size
-
-                override fun get(index: Int): Film {
-                    return it[index]
-                }
-            }
+    fun getFavoriteList(): Flow<List<Film>> {
+        return getFavoriteFilmList().transform {value ->
+            emit(value)
         }
     }
 

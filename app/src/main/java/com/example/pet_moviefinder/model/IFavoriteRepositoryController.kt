@@ -8,6 +8,8 @@ import com.example.pet_moviefinder.data.entity.Film
 import com.example.pet_moviefinder.data.repositories.FavoriteFilmRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 interface IFavoriteRepositoryController {
@@ -15,7 +17,7 @@ interface IFavoriteRepositoryController {
     fun isFavorite(film: Film?): Boolean
     fun addFavorite(film: Film)
     fun removeFavorite(film: Film)
-    fun getLiveData(): LiveData<List<Film>>
+    fun getFilmList(): StateFlow<List<Film>>
 }
 
 class FavoriteRepositoryController(
@@ -35,9 +37,9 @@ class FavoriteRepositoryController(
 
     override fun isFavorite(film: Film?): Boolean {
         if (film == null) return false
-        return favoriteFilmRepository.getLiveData().value?.any {
+        return favoriteFilmRepository.getFilmList().value.any {
             it.id == film.id
-        } ?: false
+        }
     }
 
     override fun addFavorite(film: Film) {
@@ -52,7 +54,7 @@ class FavoriteRepositoryController(
         }
     }
 
-    override fun getLiveData(): LiveData<List<Film>> {
-        return favoriteFilmRepository.getLiveData()
+    override fun getFilmList(): StateFlow<List<Film>> {
+        return favoriteFilmRepository.getFilmList()
     }
 }

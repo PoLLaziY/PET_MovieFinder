@@ -6,10 +6,12 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.lifecycleScope
 import com.example.pet_moviefinder.App
 import com.example.pet_moviefinder.databinding.FragmentFavoriteBinding
 import com.example.pet_moviefinder.view_model.FavoriteFragmentModel
 import com.example.pet_moviefinder.view_model.FilmViewAdapter
+import kotlinx.coroutines.launch
 
 class FavoriteFragment : Fragment() {
 
@@ -36,26 +38,32 @@ class FavoriteFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        viewModel.listData.observe(viewLifecycleOwner) {
-            adapter.list = it
+        lifecycleScope.launch {
+            viewModel.filmList.collect {
+                adapter.list = it
+            }
+        }
+
+        lifecycleScope.launch {
+            viewModel.searchInFocus.collect {
+                if (it) binding.contentView.searchView.isIconified = false
+                else {
+                    binding.contentView.searchView.clearFocus()
+                    adapter.list = viewModel.filmList.value
+                }
+            }
+        }
+
+        lifecycleScope.launch {
+            viewModel.isRefreshing.collect {
+                binding.contentView.swipeRefreshLayout.isRefreshing = it
+                if (it) viewModel.refreshData()
+            }
         }
 
         binding.contentView.rv.addOnScrollListener(viewModel.rvScrollListener)
 
         binding.contentView.rv.scrollToPosition(if (viewModel.scrollState < adapter.list?.size ?: 0) viewModel.scrollState else 0)
-
-        viewModel.searchInFocus.observe(viewLifecycleOwner) {
-            if (it) binding.contentView.searchView.isIconified = false
-            else {
-                binding.contentView.searchView.clearFocus()
-                adapter.list = viewModel.listData.value
-            }
-        }
-
-        viewModel.isRefreshing.observe(viewLifecycleOwner) {
-            binding.contentView.swipeRefreshLayout.isRefreshing = it
-            if (it) viewModel.refreshData()
-        }
 
         binding.contentView.rv.adapter = adapter
 

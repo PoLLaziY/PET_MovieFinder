@@ -1,18 +1,16 @@
 package com.example.pet_moviefinder.view_model
 
-import android.widget.Toast
 import androidx.appcompat.widget.SearchView
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.pet_moviefinder.App
 import com.example.pet_moviefinder.model.IFilmRepositoryController
 import com.example.pet_moviefinder.model.INavigationController
 import com.example.pet_moviefinder.data.entity.Film
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class HomeFragmentModel(
@@ -21,11 +19,11 @@ class HomeFragmentModel(
     private val handle: SavedStateHandle
 ) : ViewModel() {
 
-    var listData = repositoryController.getLiveData()
+    var filmList: StateFlow<List<Film>> = repositoryController.getFilmListFlow()
 
-    var searchInFocus = MutableLiveData(false)
+    var searchInFocus = MutableStateFlow(false)
 
-    var isRefreshing = MutableLiveData(false)
+    var isRefreshing = MutableStateFlow(false)
 
     var scrollState: Int = handle.get<Int>(SavedStateHandleKeys.HOME_SCROLL_STATE)?:0
     set(value) {
@@ -44,7 +42,7 @@ class HomeFragmentModel(
 
         override fun onQueryTextChange(newText: String?): Boolean {
             if (!newText.isNullOrBlank()) {
-                adapter.list = repositoryController.getLiveData().value?.filter { film ->
+                adapter.list = repositoryController.getFilmListFlow().value.filter { film ->
                     film.title?.contains(newText, true)?: false
                 }
             }
@@ -63,7 +61,9 @@ class HomeFragmentModel(
 
     fun refreshData() {
         repositoryController.refreshData {
-            isRefreshing.postValue(false)
+            viewModelScope.launch {
+                isRefreshing.emit(false)
+            }
         }
     }
 }
