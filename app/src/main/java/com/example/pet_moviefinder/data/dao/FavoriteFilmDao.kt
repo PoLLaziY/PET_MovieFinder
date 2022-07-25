@@ -3,17 +3,16 @@ package com.example.pet_moviefinder.data.dao
 import androidx.room.*
 import com.example.pet_moviefinder.data.entity.FavoriteFilm
 import com.example.pet_moviefinder.data.entity.Film
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.transform
+import io.reactivex.rxjava3.core.Observable
 
 @Dao
 interface FavoriteFilmDao {
     @Query("SELECT * FROM ${FavoriteFilm.Fields.TABLE_NAME}")
-    fun getFavoriteFilmList(): Flow<List<FavoriteFilm>>
+    fun getFavoriteFilmList(): Observable<List<FavoriteFilm>>
 
-    fun getFavoriteList(): Flow<List<Film>> {
-        return getFavoriteFilmList().transform {value ->
-            emit(value)
+    fun getFavoriteList(): Observable<List<Film>> {
+        return getFavoriteFilmList().map {
+            return@map it
         }
     }
 
