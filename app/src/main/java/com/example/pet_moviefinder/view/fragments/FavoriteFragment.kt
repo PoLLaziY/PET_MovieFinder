@@ -6,12 +6,10 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.lifecycleScope
 import com.example.pet_moviefinder.App
 import com.example.pet_moviefinder.databinding.FragmentFavoriteBinding
 import com.example.pet_moviefinder.view_model.FavoriteFragmentModel
 import com.example.pet_moviefinder.view_model.FilmViewAdapter
-import kotlinx.coroutines.launch
 
 class FavoriteFragment : Fragment() {
 
@@ -21,7 +19,7 @@ class FavoriteFragment : Fragment() {
             this
         )
     }
-    val adapter: FilmViewAdapter = FilmViewAdapter {
+    private val adapter: FilmViewAdapter = FilmViewAdapter {
         viewModel.onFilmItemClick(it)
     }
 
@@ -38,28 +36,24 @@ class FavoriteFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        lifecycleScope.launch {
-            viewModel.filmList.collect {
-                adapter.list = it
+        viewModel.filmList.subscribe {
+            adapter.list = it
+        }
+
+
+        viewModel.searchInFocus.subscribe() {
+            if (it) binding.contentView.searchView.isIconified = false
+            else {
+                binding.contentView.searchView.clearFocus()
+                adapter.list = viewModel.filmList.value
             }
         }
 
-        lifecycleScope.launch {
-            viewModel.searchInFocus.collect {
-                if (it) binding.contentView.searchView.isIconified = false
-                else {
-                    binding.contentView.searchView.clearFocus()
-                    adapter.list = viewModel.filmList.value
-                }
-            }
+        viewModel.isRefreshing.subscribe() {
+            binding.contentView.swipeRefreshLayout.isRefreshing = it
+            if (it) viewModel.refreshData()
         }
 
-        lifecycleScope.launch {
-            viewModel.isRefreshing.collect {
-                binding.contentView.swipeRefreshLayout.isRefreshing = it
-                if (it) viewModel.refreshData()
-            }
-        }
 
         binding.contentView.rv.addOnScrollListener(viewModel.rvScrollListener)
 
@@ -68,18 +62,22 @@ class FavoriteFragment : Fragment() {
         binding.contentView.rv.adapter = adapter
 
         //настройка нижнего окна навигации
-        binding.bottomBar.bottomNV.setOnItemSelectedListener { viewModel.onNavigationClickListener(it.itemId) }
+        binding.bottomBar.bottomNV.setOnItemSelectedListener {
+            viewModel.onNavigationClickListener(
+                it.itemId
+            )
+        }
 
 
         //настройка окна поиска
         //при нажатии открывается ввод
         binding.contentView.searchView.setOnClickListener {
-            if (!viewModel.searchInFocus.value!!) viewModel.searchInFocus.value = true
+            if (!viewModel.searchInFocus.value!!) viewModel.searchInFocus.onNext(true)
         }
 
         //при закрытии убрать фокус
         binding.contentView.searchView.setOnCloseListener {
-            viewModel.searchInFocus.value = false
+            viewModel.searchInFocus.onNext(false)
             return@setOnCloseListener true
         }
 
@@ -88,7 +86,7 @@ class FavoriteFragment : Fragment() {
 
         //настройка свайпа для обновления
         binding.contentView.swipeRefreshLayout.setOnRefreshListener {
-            viewModel.isRefreshing.value = true
+            viewModel.isRefreshing.onNext(true)
         }
     }
 }

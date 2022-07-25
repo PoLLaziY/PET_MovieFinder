@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.pet_moviefinder.data.entity.Film
 import com.example.pet_moviefinder.model.IFavoriteRepositoryController
 import com.example.pet_moviefinder.model.INavigationController
+import io.reactivex.rxjava3.subjects.BehaviorSubject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -19,11 +20,11 @@ class FavoriteFragmentModel(
     private val handle: SavedStateHandle
 ): ViewModel() {
 
-    var filmList: StateFlow<List<Film>> = favoriteController.getFilmList()
+    var filmList: BehaviorSubject<List<Film>> = favoriteController.getFilmList()
 
-    var searchInFocus = MutableStateFlow(false)
+    var searchInFocus = BehaviorSubject.create<Boolean>().apply { onNext(false) }
 
-    var isRefreshing = MutableStateFlow(false)
+    var isRefreshing = BehaviorSubject.create<Boolean>().apply { onNext(false) }
 
 
     var scrollState: Int = handle.get<Int>(SavedStateHandleKeys.FAVORITE_SCROLL_STATE)?:0
@@ -43,7 +44,7 @@ class FavoriteFragmentModel(
 
         override fun onQueryTextChange(newText: String?): Boolean {
             if (!newText.isNullOrBlank()) {
-                adapter.list = favoriteController.getFilmList().value.filter { film ->
+                adapter.list = favoriteController.getFilmList().value?.filter { film ->
                     film.title?.contains(newText, true)?:false
                 }
             }
@@ -62,9 +63,7 @@ class FavoriteFragmentModel(
 
     fun refreshData() {
         favoriteController.refreshData {
-            viewModelScope.launch {
-                isRefreshing.emit(false)
-            }
+            isRefreshing.onNext(false)
         }
     }
 }

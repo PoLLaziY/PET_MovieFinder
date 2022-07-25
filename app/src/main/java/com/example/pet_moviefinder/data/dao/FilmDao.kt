@@ -2,12 +2,12 @@ package com.example.pet_moviefinder.data.dao
 
 import androidx.room.*
 import com.example.pet_moviefinder.data.entity.Film
-import kotlinx.coroutines.flow.Flow
+import io.reactivex.rxjava3.core.Observable
 
 @Dao
 interface FilmDao {
     @Query("SELECT * FROM ${Film.Fields.TABLE_NAME}")
-    fun getFilmList(): Flow<List<Film>>
+    fun getFilmList(): Observable<List<Film>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(film: Film): Long

@@ -9,6 +9,7 @@ import com.example.pet_moviefinder.data.entity.Film
 import com.example.pet_moviefinder.data.remote_api.TheMovieDbAPI
 import com.example.pet_moviefinder.data.remote_api.TheMovieDbKey
 import com.example.pet_moviefinder.data.repositories.FilmRepository
+import io.reactivex.rxjava3.subjects.BehaviorSubject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,14 +22,13 @@ import retrofit2.Response
 interface IFilmRepositoryController {
     fun updateData(onDataUpdate: ((repository: FilmRepository) -> Unit)? = null)
     fun refreshData(onDataRefresh: ((repository: FilmRepository) -> Unit)? = null)
-    fun getFilmListFlow(): StateFlow<List<Film>>
+    fun getFilmList(): BehaviorSubject<List<Film>>
 }
 
 class FilmRepositoryController(
     val service: TheMovieDbAPI,
     val filmRepository: FilmRepository,
-    val preferencesProvider: PreferencesProvider,
-    val filmDao: FilmDao
+    val preferencesProvider: PreferencesProvider
 ) : IFilmRepositoryController {
 
     private var activePage = 0
@@ -36,23 +36,15 @@ class FilmRepositoryController(
     override fun updateData(onDataUpdate: ((repository: FilmRepository) -> Unit)?) {
         sendRequestToFilmList(++activePage) {
             if (it != null) {
+                it.body()?.results?.forEach { film ->
+                    filmRepository.insert(film)
+                }
+                filmRepository.refresh()
                 onDataUpdate?.invoke(filmRepository)
-                CoroutineScope(Dispatchers.IO).launch {
-                    val list = it.body()?.results
-                    if (!list.isNullOrEmpty()) {
-                        if (activePage == 1) filmDao.clear()
-                        filmDao.insert(it.body()!!.results)
-                    }
-                }
+                Toast.makeText(App.app, "Date update", Toast.LENGTH_SHORT).show()
             } else {
-                CoroutineScope(Dispatchers.IO).launch {
-                    val list = filmDao.getFilmList()
-                    CoroutineScope(Dispatchers.Main).launch {
-                        onDataUpdate?.invoke(filmRepository)
-                        if (filmRepository.size() == 0) Toast.makeText(App.app, "Film Repository is empty", Toast.LENGTH_SHORT)
-                            .show()
-                    }
-                }
+                onDataUpdate?.invoke(filmRepository)
+                Toast.makeText(App.app, "Date not update", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -62,7 +54,7 @@ class FilmRepositoryController(
         updateData(onDataUpdate)
     }
 
-    override fun getFilmListFlow(): StateFlow<List<Film>> {
+    override fun getFilmList(): BehaviorSubject<List<Film>> {
         return filmRepository.getFilmList()
     }
 

@@ -1,7 +1,5 @@
 package com.example.pet_moviefinder.di.modules
 
-import android.content.Context
-import com.example.pet_moviefinder.data.FilmDb
 import com.example.pet_moviefinder.data.PreferencesProvider
 import com.example.pet_moviefinder.data.remote_api.TheMovieDbAPI
 import com.example.pet_moviefinder.data.repositories.FavoriteFilmRepository
@@ -23,12 +21,10 @@ class ControllerModule {
     @Provides
     @Singleton
     fun provideFavoriteRepositoryController(
-        favoriteFilmRepository: FavoriteFilmRepository,
-        filmDb: FilmDb
+        favoriteFilmRepository: FavoriteFilmRepository
     ): IFavoriteRepositoryController {
         return FavoriteRepositoryController(
-            favoriteFilmRepository = favoriteFilmRepository,
-            favoriteFilmDao = filmDb.favoriteFilmDao()
+            favoriteFilmRepository = favoriteFilmRepository
         )
     }
 
@@ -37,14 +33,12 @@ class ControllerModule {
     fun provideFilmRepositoryController(
         service: TheMovieDbAPI,
         repository: FilmRepository,
-        preferencesProvider: PreferencesProvider,
-        filmDb: FilmDb
+        preferencesProvider: PreferencesProvider
     ): IFilmRepositoryController {
         return FilmRepositoryController(
             service = service,
             filmRepository = repository,
-            preferencesProvider = preferencesProvider,
-            filmDao = filmDb.filmDao()
+            preferencesProvider = preferencesProvider
         )
     }
 

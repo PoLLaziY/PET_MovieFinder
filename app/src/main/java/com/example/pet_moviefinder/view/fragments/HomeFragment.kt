@@ -6,14 +6,11 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.lifecycleScope
 import com.example.pet_moviefinder.App
 import com.example.pet_moviefinder.data.entity.Film
 import com.example.pet_moviefinder.view_model.HomeFragmentModel
 import com.example.pet_moviefinder.databinding.FragmentHomeBinding
 import com.example.pet_moviefinder.view_model.FilmViewAdapter
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 class HomeFragment : Fragment() {
 
@@ -39,27 +36,22 @@ class HomeFragment : Fragment() {
         //настройка RecyclerView
         binding.contentView.rv.adapter = adapter
 
-        lifecycleScope.launch(Dispatchers.Main) {
-            viewModel.filmList.collect {
-                adapter.list = it
+        viewModel.filmList.subscribe {
+            adapter.list = it
+        }
+
+
+        viewModel.searchInFocus.subscribe() {
+            if (it) binding.contentView.searchView.isIconified = false
+            else {
+                binding.contentView.searchView.clearFocus()
+                adapter.list = viewModel.filmList.value
             }
         }
 
-        lifecycleScope.launch {
-            viewModel.searchInFocus.collect {
-                if (it) binding.contentView.searchView.isIconified = false
-                else {
-                    binding.contentView.searchView.clearFocus()
-                    adapter.list = viewModel.filmList.value
-                }
-            }
-        }
-
-        lifecycleScope.launch {
-            viewModel.isRefreshing.collect {
-                binding.contentView.swipeRefreshLayout.isRefreshing = it
-                if (it) viewModel.refreshData()
-            }
+        viewModel.isRefreshing.subscribe() {
+            binding.contentView.swipeRefreshLayout.isRefreshing = it
+            if (it) viewModel.refreshData()
         }
 
 
@@ -84,12 +76,12 @@ class HomeFragment : Fragment() {
         //настройка окна поиска
         //при нажатии открывается ввод
         binding.contentView.searchView.setOnClickListener {
-            if (!viewModel.searchInFocus.value!!) viewModel.searchInFocus.value = true
+            if (!viewModel.searchInFocus.value!!) viewModel.searchInFocus.onNext(true)
         }
 
         //при закрытии убрать фокус
         binding.contentView.searchView.setOnCloseListener {
-            viewModel.searchInFocus.value = false
+            viewModel.searchInFocus.onNext(false)
             return@setOnCloseListener true
         }
 
@@ -98,7 +90,7 @@ class HomeFragment : Fragment() {
 
         //настройка свайпа для обновления
         binding.contentView.swipeRefreshLayout.setOnRefreshListener {
-            viewModel.isRefreshing.value = true
+            viewModel.isRefreshing.onNext(true)
         }
     }
 }
